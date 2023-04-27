@@ -24,6 +24,7 @@ pub struct ArchiveInner<R: ?Sized> {
     pos: Cell<u64>,
     unpack_xattrs: bool,
     preserve_permissions: bool,
+    ignore_permissions: bool,
     preserve_ownerships: bool,
     preserve_mtime: bool,
     overwrite: bool,
@@ -55,6 +56,7 @@ impl<R: Read> Archive<R> {
             inner: ArchiveInner {
                 unpack_xattrs: false,
                 preserve_permissions: false,
+                ignore_permissions: false,
                 preserve_ownerships: false,
                 preserve_mtime: true,
                 overwrite: true,
@@ -126,6 +128,14 @@ impl<R: Read> Archive<R> {
     /// Unix.
     pub fn set_preserve_permissions(&mut self, preserve: bool) {
         self.inner.preserve_permissions = preserve;
+    }
+
+    /// Indicate whether permissions are ignored when unpacking this
+    /// archive.
+    ///
+    /// This flag is disabled by default.
+    pub fn set_ignore_permissions(&mut self, preserve: bool) {
+        self.inner.ignore_permissions = preserve;
     }
 
     /// Indicate whether numeric ownership ids (like uid and gid on Unix)
@@ -322,6 +332,7 @@ impl<'a> EntriesFields<'a> {
             pax_extensions: None,
             unpack_xattrs: self.archive.inner.unpack_xattrs,
             preserve_permissions: self.archive.inner.preserve_permissions,
+            ignore_permissions: self.archive.inner.ignore_permissions,
             preserve_mtime: self.archive.inner.preserve_mtime,
             overwrite: self.archive.inner.overwrite,
             preserve_ownerships: self.archive.inner.preserve_ownerships,

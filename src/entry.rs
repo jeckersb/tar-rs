@@ -38,6 +38,7 @@ pub struct EntryFields<'a> {
     pub data: Vec<EntryIo<'a>>,
     pub unpack_xattrs: bool,
     pub preserve_permissions: bool,
+    pub ignore_permissions: bool,
     pub preserve_ownerships: bool,
     pub preserve_mtime: bool,
     pub overwrite: bool,
@@ -251,6 +252,14 @@ impl<'a, R: Read> Entry<'a, R> {
         self.fields.preserve_permissions = preserve;
     }
 
+    /// Indicate whether permissions are ignored when unpacking this
+    /// entry.
+    ///
+    /// This flag is disabled by default.
+    pub fn set_ignore_permissions(&mut self, preserve: bool) {
+        self.fields.ignore_permissions = preserve;
+    }
+
     /// Indicate whether access time information is preserved when unpacking
     /// this entry.
     ///
@@ -450,6 +459,7 @@ impl<'a> EntryFields<'a> {
             f: Option<&mut std::fs::File>,
             header: &Header,
             perms: bool,
+            ignore_perms: bool,
             ownerships: bool,
         ) -> io::Result<()> {
             // ownerships need to be set first to avoid stripping SUID bits in the permissions ...
@@ -457,8 +467,10 @@ impl<'a> EntryFields<'a> {
                 set_ownerships(dst, &f, header.uid()?, header.gid()?)?;
             }
             // ... then set permissions, SUID bits set here is kept
-            if let Ok(mode) = header.mode() {
-                set_perms(dst, f, mode, perms)?;
+            if !ignore_perms {
+                if let Ok(mode) = header.mode() {
+                    set_perms(dst, f, mode, perms)?;
+                }
             }
 
             Ok(())
@@ -486,6 +498,7 @@ impl<'a> EntryFields<'a> {
                 None,
                 &self.header,
                 self.preserve_permissions,
+                self.ignore_permissions,
                 self.preserve_ownerships,
             )?;
             return Ok(Unpacked::__Nonexhaustive);
@@ -602,6 +615,7 @@ impl<'a> EntryFields<'a> {
                 None,
                 &self.header,
                 self.preserve_permissions,
+                self.ignore_permissions,
                 self.preserve_ownerships,
             )?;
             return Ok(Unpacked::__Nonexhaustive);
@@ -677,6 +691,7 @@ impl<'a> EntryFields<'a> {
             Some(&mut f),
             &self.header,
             self.preserve_permissions,
+            self.ignore_permissions,
             self.preserve_ownerships,
         )?;
         if self.unpack_xattrs {
